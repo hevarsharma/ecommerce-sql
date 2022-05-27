@@ -55,14 +55,17 @@ exports.getProductsByCategory = (req, res, next) => {
 }
 
 exports.getProductById = (req, res, next) => {
+    console.log(req);
     const prodId = req.params.productId;
+    console.log(prodId);
     Product.findById(prodId)
-        .then(product => {
-            res.send(product);
-        })
-        .catch(err => {
-            const error = new Error(err);
-            error.httpStatusCode = 500;
-            return next(error);
-        });
+    .then(products => {
+      res.send(products);
+    })
+    .catch(err => {
+      console.log(err);
+      const error = new Error(err);
+      error.httpStatusCode = 500;
+      return next(error);
+    });
 };

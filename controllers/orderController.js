@@ -53,7 +53,6 @@ exports.getOrders = (req, res, next) => {
         var userOrders =  orders.filter(function(order) {
             return order.user._id == req.userId;
           });
-          console.log(userOrders)
       res.send(userOrders);
     })
     .catch(err => {

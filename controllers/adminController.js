@@ -37,7 +37,7 @@ exports.postAddProduct = (req, res, next) => {
   product
     .save()
     .then(result => {
-      console.log(req.userId);
+      //console.log(req.userId);
       console.log('Created Product');
       res.status(200).send({ message: 'Product added successfuly', 'product': product });
     })
