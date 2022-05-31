@@ -10,8 +10,8 @@ router.get('/products' , adminController.getProducts);
 
 router.post('/add-product',auth, adminController.postAddProduct );
 
-router.post('/edit-product/:productId',auth, adminController.postEditProduct);
+router.put('/edit-product/:productId',auth, adminController.postEditProduct);
 
-router.post('/delete-product/:productId' ,auth, adminController.postDeleteProduct);
+router.delete('/delete-product/:productId' ,auth, adminController.postDeleteProduct);
 
 module.exports = router;

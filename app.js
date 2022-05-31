@@ -2,14 +2,12 @@ const path = require('path');
 
 const express = require('express');
 const bodyParser = require('body-parser');
-const mongoose = require('mongoose');
 const multer = require('multer');
 const dotenv= require('dotenv');
 
-const errorController = require('./controllers/errorController');
+const mySqlConnection = require('./config/dbConfig');
 
-const MONGODB_URI =
-  'mongodb://localhost/ecommerce-application';
+const errorController = require('./controllers/errorController');
 
 const app = express();
 
@@ -33,6 +31,10 @@ const fileFilter = (req, file, cb) => {
     cb(null, false);
   }
 };
+
+app.use(express.json());
+
+app.use(express.urlencoded({ extended : true}));
 
 // app.use((req, res, next) => {
 //     res.send({message : 'we working on ecommerce application......'});
@@ -67,12 +69,16 @@ app.use((error, req, res, next) => {
 
 dotenv.config();
 
-mongoose
-  .connect(MONGODB_URI, { useNewUrlParser: true , useUnifiedTopology: true }  )
-  .then(result => {
-    app.listen(process.env.PORT);
-    console.log(`server connected on port ${process.env.PORT}....`);
-  })
-  .catch(err => {
-    console.log(err);
-  });
+mySqlConnection.connect( (err) => {
+  if(!err){
+    console.log('connection sucess to database.....');
+  }
+  else{
+    console.log('database connection failed.......');
+  }
+});
+
+
+app.listen( process.env.PORT , () => {
+    console.log(`server running on ${process.env.PORT}`);
+});

@@ -1,66 +1,90 @@
-const Product = require('../models/product');
-const User = require('../models/user');
-const Order = require('../models/order')
+const mySqlConnection = require('../config/dbConfig');
+
+const { validationResult } = require('express-validator/check');
 
 exports.postOrder = (req, res, next) => {
-    
-    try {
-        const productId = req.params.productId;
 
-        const userId = req.userId;
 
-        User.findById(userId)
-            .then(user => {
-                //console.log(user);
-                Product.findById(productId)
-                    .then(product => {
-                        //console.log(product);
-                        const order = new Order({
-                            product: product,
-                            user: user
-                        });
-                        return order.save()
-                    })
-                    .then(result => {
-                        console.log('Order Created');
-                        res.status(200).send({ message: 'Product Ordered successfuly',order: result });
-                    })
-                    .catch(err => {
-                        console.log(`...........>>>$${err}`);
-                        const error = new Error(err);
-                        error.httpStatusCode = 500;
-                        return next(error);
-                    });
-            })
-            .catch(err => {
-                console.log(`...........>>>$${err}`);
-                const error = new Error(err);
-                error.httpStatusCode = 500;
-                return next(error);
+  const productId = req.params.productId;
 
-            })
-    } catch (err) {
-        console.log(err);
-        res.send({ message: err });
-    };
+  const userId = req.userId;
+
+  const errors = validationResult(req);
+
+  if (!errors.isEmpty()) {
+    console.log(errors.array());
+    return res.status(422).send({ message: errors.array()[0].msg });
+  }
+
+  try {
+
+    info = {
+      userId: userId,
+      productId: productId
+    }
+    sql = 'INSERT INTO orders SET ?'
+    mySqlConnection.query(sql, info, async (err, result, field) => {
+      if (!err) {
+        res.send({
+          message: "Order placed successfully.",
+          order: result[0]
+        })
+      }
+      else {
+        res.send({
+          'code': 204,
+          error: err
+        })
+      }
+    });
+
+  } catch (er) {
+    res.send({ er: er });
+  }
 
 };
 
 exports.getOrders = (req, res, next) => {
 
-    Order.find()
-    .then(orders => {
-        var userOrders =  orders.filter(function(order) {
-            return order.user._id == req.userId;
+  const errors = validationResult(req);
+
+  if (!errors.isEmpty()) {
+    console.log(errors.array());
+    return res.status(422).send({ message: errors.array()[0].msg });
+  }
+
+  try {
+
+    mySqlConnection.query(`SELECT * FROM orders WHERE userId = ${req.userId}`, async (err, result, field) => {
+      
+      if (!err) {
+
+        if(result === []){
+          res.send({
+            'code': 200,
+            orders: result
           });
-      res.send(userOrders);
+        }else{
+          res.send({
+            message:'user has not placed any orders... '
+          })
+        }
+        
+      }
+      else {
+        res.send({
+          'code': 204,
+          error: err
+        });
+      }
     })
-    .catch(err => {
-        console.log(err);
-      const error = new Error(err);
-      error.httpStatusCode = 500;
-      return next(error);
+  }
+  catch (er) {
+    res.send({
+      'code': 204,
+      error: er
     });
+  }
 
 }
 

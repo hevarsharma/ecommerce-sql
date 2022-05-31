@@ -20,6 +20,7 @@ module.exports = (req, res, next) => {
       if (err) {
         res.send({ message: err.message })
       } else {
+        //console.log(userId);
         console.log('token verify');
         //res.send( {token: token} )
       }

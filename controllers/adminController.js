@@ -1,10 +1,8 @@
+const mySqlConnection = require('../config/dbConfig');
 
-//const bcrypt = require('bcryptjs');
 const { validationResult } = require('express-validator/check');
 
 const fileHelper = require('../utils/file');
-
-const Product = require('../models/product');
 
 //  ===>>> Post a Product by admin
 
@@ -27,103 +25,146 @@ exports.postAddProduct = (req, res, next) => {
 
   const imageUrl = image.path;
 
-  const product = new Product({
+  const product = {
     title: title,
     price: price,
     description: description,
     category: category,
     imageUrl: imageUrl,
+  };
+
+  mySqlConnection.query('INSERT INTO products SET ?', product, async (err, result, fields) => {
+    if (!err) {
+      res.send({
+        message: 'Product added successfuly',
+        Product: result[0]
+      });
+    }
+    else {
+      res.send({ error: err })
+      console.log(err);
+    }
   });
-  product
-    .save()
-    .then(result => {
-      //console.log(req.userId);
-      console.log('Created Product');
-      res.status(200).send({ message: 'Product added successfuly', 'product': product });
-    })
-    .catch(err => {
-      console.log(`...........>>>$${err}`);
-      const error = new Error(err);
-      error.httpStatusCode = 500;
-      return next(error);
-    });
+
 };
 
 //  ===>>> Get Products by admin
 
 exports.getProducts = (req, res, next) => {
-  Product.find()
-    .then(products => {
-      res.send(products);
-    })
-    .catch(err => {
-      console.log(err);
-      const error = new Error(err);
-      error.httpStatusCode = 500;
-      return next(error);
-    });
-};
-
-//  ===>>> Edit Product by admin
-
-exports.postEditProduct = (req, res, next) => {
-  const prodId = req.params.productId;
-  const updatedTitle = req.body.title;
-  const updatedPrice = req.body.price;
-  const updateCategory = req.body.category;
-  const image = req.file;
-  const updatedDesc = req.body.description;
 
   const errors = validationResult(req);
 
   if (!errors.isEmpty()) {
-    return res.status(422).send(console.log(errors.array()[0].msg));
+    console.log(errors.array());
+    return res.status(422).send({ message: errors.array()[0].msg });
   }
-  Product.findById(prodId)
-    .then(product => {
 
-      product.title = updatedTitle;
-      product.price = updatedPrice;
-      product.description = updatedDesc;
-      product.category = updateCategory;
+  mySqlConnection.query("SELECT * FROM products", async (err, products, field) => {
 
-      if (image) {
-        fileHelper.deleteFile(product.imageUrl);
-        product.imageUrl = image.path;
+    try {
+      if (!err) {
+        res.send({
+          message: 'Success',
+          Products: products
+        });
       }
-      return product.save().then(result => {
-        console.log('UPDATED PRODUCT!');
-        res.send({ message: 'product is successfully update.' });
-      });
-    })
-    .catch(err => {
-      console.log(err);
-      const error = new Error(err);
-      error.httpStatusCode = 500;
-      return next(error);
-    });
+      else {
+        res.send({ error: err })
+        console.log(err);
+      }
+    } catch (er) {
+      res.send({ er: er })
+      console.log(er);
+    }
+  })
+
+};
+
+//  ===>>> Edit image of Product by admin
+
+exports.postEditProduct = (req, res, next) => {
+
+  let id = req.params.productId;
+  let image = req.file;
+
+  const errors = validationResult(req);
+
+  if (!errors.isEmpty()) {
+    console.log(errors.array());
+    return res.status(422).send({ message: errors.array()[0].msg });
+  }
+
+  mySqlConnection.query(`SELECT * FROM products WHERE id = ${id}`, async (err, product, field) => {
+
+    try {
+      if (product[0].length !== -1) {
+
+        if (image) {
+
+          fileHelper.deleteFile(product[0].imageUrl);
+
+          mySqlConnection.query(`UPDATE products SET imageUrl = '${image.path}' WHERE id = '${id}'`, (err, result) => {
+            if (!err) {
+              res.send({ message: "Product Updated Successfully" });
+              console.log(result);
+            }
+            else {
+              res.send({ message: err });
+              console.log(err);
+            }
+          })
+        }
+        else {
+          res.send({ message: 'image path is not dined....' });
+        }
+
+      }
+      else {
+        res.send({
+          message: 'product is not defined....',
+          error: err
+        });
+      }
+    } catch (er) {
+      res.send({ err: er });
+    }
+  })
+
 };
 
 //  ===>>> Delete Product by admin
 
 exports.postDeleteProduct = (req, res, next) => {
+
   const prodId = req.params.productId;
-  console.log(req.params);
-  Product.findById(prodId)
-    .then(product => {
-      if (!product) {
-        return next(new Error('Product not found.'));
+
+  const errors = validationResult(req);
+
+  if (!errors.isEmpty()) {
+    console.log(errors.array());
+    return res.status(422).send({ message: errors.array()[0].msg });
+  }
+
+  try {
+
+    mySqlConnection.query(`SELECT * FROM products WHERE id = ${prodId}`, async (err, product, field) => {
+
+      if (product[0] !== -1) 
+      {
+        fileHelper.deleteFile(product[0].imageUrl);
+
+        mySqlConnection.query(`DELETE FROM products WHERE id = ${prodId}`, async (err, result, fields) => {
+          res.send({message: 'Product delete successfully'});
+        });
       }
-      fileHelper.deleteFile(product.imageUrl);
-      return Product.deleteOne({ _id: prodId });
+      else{
+        res.send({err: 'product not found....'});
+      }
+
     })
-    .then(() => {
-      console.log('DESTROYED PRODUCT');
-      res.send({message: 'Product is deleted .'})
-    })
-    .catch(err => {
-      const error = new Error(err);
-      error.httpStatusCode = 500;
-      return next(error);
-    });
+
+  }catch(er){
+    console.log(res.send({err: er}));
+  }
+
 };
